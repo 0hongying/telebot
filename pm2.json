@@ -1,0 +1,16 @@
+{
+  "apps": [
+    {
+      "name": "chat-bot",
+      "script": "./dist/main.js",
+      "instances": 4,
+      "exec_mode": "cluster",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_date_format": "YYYY-MM-DD HH:mm:ss",
+      "max_memory_restart": "600M",
+      "merge_logs": true
+    }
+  ]
+}
