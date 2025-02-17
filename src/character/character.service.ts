@@ -44,7 +44,7 @@ export class CharacterService implements OnApplicationBootstrap {
     const characterSearch = await this.characterSearchRepository.findOne({
       where: { id: characterId },
       select: [
-        'id', 'name', 'avatar', 'createdAt', 'creatorId',
+        'id', 'name', 'avatar', 'createdAt', 'creatorId', 'genderId',
         'description', 'personality', 'scenario', 'exampleDialogs', 'firstMessage',
         'isPublic', 'tagIds', 'totalChat', 'totalMessage'
       ]

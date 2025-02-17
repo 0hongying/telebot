@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { msgFail, msgSuccess } from 'src/shared/utils';
 import { AdminService } from './admin.service';
 import { AdminGuard, AdminKey } from 'src/auth/auth.guard';
@@ -61,5 +61,20 @@ export class AdminController {
       jsonData.messageQuotaCount,
     );
     return msgSuccess({});
+  }
+
+  @AdminKey(ssKey)
+  @UseGuards(AdminGuard)
+  @Patch('/characters/introduction')
+  async updateCharatersIntroduction() {
+    await this.adminService.updateCharatersIntroduction();
+    return msgSuccess({});
+  }
+
+  @AdminKey(ssKey)
+  @UseGuards(AdminGuard)
+  @Post('/add-gender-tag/')
+  async addGenderTag(@Body() body: { characterIds: string[] }) {
+    const data = await this.adminService.addGenderTag(body.characterIds);
   }
 }

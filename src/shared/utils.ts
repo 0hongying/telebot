@@ -26,7 +26,7 @@ export const msgFail = <T>({ code = 400, msg = RESP_TXT.ERR, data = null }: Part
   };
 };
 
-export const getBotAvatarUrl = (bucketUrl: string, avatar?: string) => (avatar ? `${bucketUrl}/bot-avatars/${avatar}` : '');
+export const getBotAvatarUrl = (supabaseUrl: string, avatar?: string) => (avatar ? `${supabaseUrl}/storage/v1/object/public/bot-avatars/${avatar}` : '');
 
 export const formatDateToYYMMDDHHmm = (now: Date) => {
   const year = now.getFullYear();

@@ -35,7 +35,7 @@ import { Bots } from '../entity/bots.entity';
 
 @Injectable()
 export class TelegramChatService {
-  public readonly bucketUrl = this.configService.get('BUCKET_URL');
+  public readonly supabaseUrl = this.configService.get('SUPABASE_URL');
   public readonly domain = this.configService.get('FRONTEND_DOMAIN');
 
   constructor(
@@ -122,7 +122,7 @@ export class TelegramChatService {
         ? formatVaildHtml(character.description).slice(0, maxDescriptionLength) + '...'
         : formatVaildHtml(character.description);
     const caption = CHARACTER_CARD(character.name, description, tags.map(tag => tag.name).join('   '));
-    await client.sendPhoto(chatId, getBotAvatarUrl(this.bucketUrl, character.avatar), {
+    await client.sendPhoto(chatId, getBotAvatarUrl(this.supabaseUrl, character.avatar), {
       caption,
       reply_markup: {
         inline_keyboard: [

@@ -1,8 +1,7 @@
 import { CacheKey, CacheTTL, Controller, Get, Param, Query, UseInterceptors } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { CharacterService } from 'src/character/character.service';
-import { CharacterView, SearchCharactersParams } from 'src/character/character.dto';
-import { Paginated } from 'src/shared/paginated.dto';
+import { SearchCharactersParams } from 'src/character/character.dto';
 import { HttpCacheInterceptor } from 'src/shared/httpCache.interceptor';
 import { SEARCH_CACHE_KEY_NEW } from 'src/shared/const';
 

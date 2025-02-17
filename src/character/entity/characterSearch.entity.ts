@@ -53,5 +53,8 @@ export class CharacterSearch {
   deletedAt: string;
 
   @ViewColumn()
-  introduction: string;
+  introduction: any;
+
+  @ViewColumn()
+  genderId: number;
 }

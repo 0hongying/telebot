@@ -1,10 +1,9 @@
 import { RedisService } from '@liaoliaots/nestjs-redis';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import Redis from 'ioredis';
 import { keyBy } from 'lodash';
-import moment from 'moment';
 import { CharacterView, SearchCharactersParams } from 'src/character/character.dto';
 import { CacheManagerService } from 'src/shared/cache-manager.service';
 import { DEFAULT_PAGE_SIZE, Paginated, getPagination } from 'src/shared/paginated.dto';
@@ -14,10 +13,14 @@ import { In, Repository } from 'typeorm';
 import { CharacterTag } from './entity/character.tag.entity';
 import { Characters } from './entity/characters.entity';
 import { CharacterStats } from './entity/characterStats.entity';
+import { RedisLock } from 'src/shared/redis.lock';
+import { ssKey } from 'src/shared/const';
 
 @Injectable()
 export class CharacterListCacheService {
   private readonly redis: Redis;
+  private readonly lockKey = 'init:cache:lock:key';
+
   constructor(
     @InjectRepository(Characters)
     private readonly charactersRepository: Repository<Characters>,
@@ -27,7 +30,8 @@ export class CharacterListCacheService {
     private readonly characterTagRepository: Repository<CharacterTag>,
     private readonly redisService: RedisService,
     private readonly cacheManagerService: CacheManagerService,
-    private readonly tagService: TagService
+    private readonly tagService: TagService,
+    private readonly redisLock: RedisLock,
   ) {
     this.redis = this.redisService.getClient();
   }
@@ -85,7 +89,6 @@ export class CharacterListCacheService {
     if (needRefresh) {
       characterIds = await this.getSortedSetRange(cacheKey, from, to - 1);
     }
-    // this.logger.debug(`|||  characterIds ${characterIds} |||`);
 
     for (const charId of characterIds) {
       const characterView = await this.cacheManagerService.getFromCache(
@@ -130,15 +133,11 @@ export class CharacterListCacheService {
   }
 
   characterViewMatchSearchParams(characterView: CharacterView, searchParams: SearchCharactersParams): boolean {
-    const { user_id, mode, tag_id, special_mode } = searchParams;
-    if (user_id && characterView.creatorId !== user_id) {
+    const { tagId, genderId } = searchParams;
+    if (tagId && !characterView.tags?.map(tag => tag.id).includes(tagId)) {
       return false;
     }
-    if (tag_id && !characterView.tags?.map(tag => tag.id).includes(tag_id)) {
-      return false;
-    }
-    const fourteenDayAgo = moment().add(-14, 'day').toDate();
-    if (special_mode && special_mode === 'trending' && new Date(characterView.createdAt) < fourteenDayAgo) {
+    if (genderId && characterView.genderId !== genderId) {
       return false;
     }
     return true;
@@ -154,8 +153,8 @@ export class CharacterListCacheService {
   async addCharacterToCache(character: Characters, allSearchParams: SearchCharactersParams[], characterStats: any) {
     for (const searchParams of allSearchParams) {
       const cacheKey = this.getCacheKeyBySearchParams(searchParams);
-      if (searchParams.sort === 'popular' || searchParams.special_mode === 'trending') {
-        await this.addToSortedSet(cacheKey, character.id, characterStats.total_message);
+      if (searchParams.sort === 'popular') {
+        await this.addToSortedSet(cacheKey, character.id, characterStats.totalMessage);
       } else if (searchParams.sort === 'latest') {
         await this.addToSortedSet(cacheKey, character.id, new Date(character.createdAt).getTime());
       }
@@ -163,12 +162,8 @@ export class CharacterListCacheService {
   }
 
   getCacheKeyBySearchParams(searchParams: SearchCharactersParams) {
-    // eslint-disable-next-line prefer-const
-    let { user_id, mode, tag_id, sort, special_mode } = searchParams;
-    if (!sort && !special_mode) {
-      sort = 'popular';
-    }
-    return `${user_id}-${mode}-${tag_id}-${sort}-${special_mode}`;
+    let { tagId, sort, genderId } = searchParams;
+    return `${genderId}-${tagId}-${sort}`;
   }
 
   async getCharacterStatsById(characterId: string) {
@@ -192,7 +187,6 @@ export class CharacterListCacheService {
         'scenario',
         'exampleDialogs',
         'firstMessage',
-        'isNsfw',
         'isPublic',
         'updatedAt',
       ],
@@ -234,49 +228,40 @@ export class CharacterListCacheService {
     return characterTags.map(tag => Number(tag.tagId));
   }
 
-  getAllPossibleSearchParams(character: Characters, characterTagIds: number[]) {
+  getAllPossibleSearchParams(characterTagIds: number[]) {
     const allSearchParams = [];
-    //user_id
-    allSearchParams.push({ user_id: character.creatorId, sort: 'latest' });
-    allSearchParams.push({ user_id: character.creatorId, sort: 'popular' });
     //tag_id
     for (const tagId of characterTagIds) {
-      allSearchParams.push({ tag_id: tagId, sort: 'latest', mode: 'all' });
-      allSearchParams.push({ tag_id: tagId, sort: 'popular', mode: 'all' });
-      if (character.isNsfw) {
-        allSearchParams.push({ tag_id: tagId, sort: 'latest', mode: 'nsfw' });
-        allSearchParams.push({ tag_id: tagId, sort: 'popular', mode: 'nsfw' });
-      } else {
-        allSearchParams.push({ tag_id: tagId, sort: 'latest', mode: 'sfw' });
-        allSearchParams.push({ tag_id: tagId, sort: 'popular', mode: 'sfw' });
-      }
+      allSearchParams.push({ tagId, sort: 'latest' });
+      allSearchParams.push({ tagId, sort: 'latest', genderId: 0 });
+      allSearchParams.push({ tagId, sort: 'latest', genderId: 1 });
+      allSearchParams.push({ tagId, sort: 'latest', genderId: 2 });
+      allSearchParams.push({ tagId, sort: 'popular'});
+      allSearchParams.push({ tagId, sort: 'popular', genderId: 0 });
+      allSearchParams.push({ tagId, sort: 'popular', genderId: 1 });
+      allSearchParams.push({ tagId, sort: 'popular', genderId: 2 });
     }
-    //mode
-    allSearchParams.push({ sort: 'latest', mode: 'all' });
-    allSearchParams.push({ sort: 'popular', mode: 'all' });
-    if (character.isNsfw) {
-      allSearchParams.push({ sort: 'latest', mode: 'nsfw' });
-      allSearchParams.push({ sort: 'popular', mode: 'nsfw' });
-    } else {
-      allSearchParams.push({ sort: 'latest', mode: 'sfw' });
-      allSearchParams.push({ sort: 'popular', mode: 'sfw' });
-    }
-    //special_mode
-    const fourteenDayAgo = moment().add(-14, 'day').toDate();
-    if (new Date(character.createdAt) > fourteenDayAgo) {
-      allSearchParams.push({ special_mode: 'trending', mode: 'all' });
-      if (character.isNsfw) {
-        allSearchParams.push({ special_mode: 'trending', mode: 'nsfw' });
-      } else {
-        allSearchParams.push({ special_mode: 'trending', mode: 'sfw' });
-      }
-    }
+    // not select tagid 
+    allSearchParams.push({ sort: 'latest' });
+    allSearchParams.push({ sort: 'latest', genderId: 0 });
+    allSearchParams.push({ sort: 'latest', genderId: 1 });
+    allSearchParams.push({ sort: 'latest', genderId: 2 });
+    allSearchParams.push({ sort: 'popular' });
+    allSearchParams.push({ sort: 'popular', genderId: 0 });
+    allSearchParams.push({ sort: 'popular', genderId: 1 });
+    allSearchParams.push({ sort: 'popular', genderId: 2 });
     return allSearchParams as SearchCharactersParams[];
   }
 
   @Cron(CronExpression.EVERY_4_HOURS, { disabled: !onInstance0() })
   async initAllCache() {
+    const requestId = ssKey;
     try {
+      const islockSuccessful = await this.redisLock.acquireLock(this.lockKey, requestId, 20 * 60);
+      if (!islockSuccessful) {
+        console.log(`${this.lockKey} already exists`);
+        throw new BadRequestException('initAllCache already run');
+      }
       console.log('begin initAllCache');
       const allCharacterIds = await this.getAllPublicCharacterIds();
       for (const characterId of allCharacterIds) {
@@ -284,12 +269,14 @@ export class CharacterListCacheService {
         if (!character) continue;
         const characterTagIds = await this.getCharacterTagIds(character.id);
         const characterStats = await this.getCharacterStatsById(character.id);
-        const allSearchParams = this.getAllPossibleSearchParams(character, characterTagIds);
+        const allSearchParams = this.getAllPossibleSearchParams(characterTagIds);
         await this.addCharacterToCache(character, allSearchParams, characterStats);
       }
-      console.log('finish initAllCache');
     } catch (error) {
       console.log(error);
+    } finally {
+      await this.redisLock.releaseLock(this.lockKey, requestId);
     }
+    throw new Error('initAllCache error');
   }
 }

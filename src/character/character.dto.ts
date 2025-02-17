@@ -51,38 +51,28 @@ export class CharacterView {
   isPublic: boolean;
   creatorId: string;
   tags?: TagEntity[];
+  genderId: number;
 
   stats?: CharacterStats; // Populated later
 }
 
 export class SearchCharactersParams {
-  @IsString()
-  @IsOptional()
-  user_id?: string;
-
   @IsNumber()
   @Type(() => Number)
   @IsOptional()
-  tag_id?: number;
+  tagId?: number;
 
   @IsNumber()
   @Type(() => Number)
-  @IsOptional()
-  page?: number;
+  page: number;
 
   @IsString()
-  @IsIn(['sfw', 'all', 'nsfw'])
-  @IsOptional()
-  mode?: 'sfw' | 'all' | 'nsfw';
-
-  @IsString()
-  @IsOptional()
   @IsIn(['latest', 'popular'])
-  sort?: 'latest' | 'popular';
+  sort: 'latest' | 'popular';
 
-  @IsString()
-  @IsIn(['trending', 'newcomer'])
+  @IsNumber()
+  @Type(() => Number)
   @IsOptional()
-  special_mode?: 'trending' | 'newcomer'; // Some special mode for front-page, custom filter & sort
+  genderId?: number;
 }
 

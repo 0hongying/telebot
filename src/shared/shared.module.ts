@@ -1,7 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { CacheManagerService } from 'src/shared/cache-manager.service';
 import { HttpCacheInterceptor } from 'src/shared/httpCache.interceptor';
-import { SupaClient } from 'src/shared/supabaseClient';
 import { TasksService } from 'src/shared/task.service';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,6 +11,7 @@ import { BotSubscription } from 'src/subscription/entity/bot-subscription.entity
 import { BotPlan } from 'src/subscription/entity/bot-plan.entity';
 import { BotUser } from 'src/entity/bot-user.entity';
 import { Bots } from 'src/bot/entity/bots.entity';
+import { RedisLock } from './redis.lock';
 
 @Global()
 @Module({
@@ -24,7 +24,7 @@ import { Bots } from 'src/bot/entity/bots.entity';
     }),
     TypeOrmModule.forFeature([Bots, BotMessageQuota, BotSubscription, BotPlan, BotUser]),
   ],
-  providers: [SupaClient, TasksService, HttpCacheInterceptor, CacheManagerService, TelegramClient, TelegramCommonService],
-  exports: [SupaClient, HttpCacheInterceptor, CacheManagerService, TelegramClient, TelegramCommonService],
+  providers: [TasksService, HttpCacheInterceptor, CacheManagerService, TelegramClient, TelegramCommonService, RedisLock],
+  exports: [TasksService, HttpCacheInterceptor, CacheManagerService, TelegramClient, TelegramCommonService, RedisLock],
 })
 export class SharedModule {}

@@ -7,9 +7,10 @@ import { CharacterModule } from 'src/character/character.module';
 import { SharedModule } from 'src/shared/shared.module';
 import { BotUser } from 'src/entity/bot-user.entity';
 import { Characters } from 'src/character/entity/characters.entity';
+import { ChatModule } from 'src/chat/chat.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Characters, BotUser]), SubscriptionModule, CharacterModule, SharedModule],
+  imports: [TypeOrmModule.forFeature([Characters, BotUser]), SubscriptionModule, CharacterModule, SharedModule, ChatModule],
   providers: [AdminService],
   exports: [AdminService],
   controllers: [AdminController],

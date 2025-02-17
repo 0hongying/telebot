@@ -39,6 +39,9 @@ export class Characters extends BaseEntity {
   })
   tags: CharacterTag[];
 
-  @Column({ type: 'bool' })
-  isNsfw: boolean;
+  @Column({ type: 'json' })
+  introduction: any
+
+  @Column()
+  genderId: number;
 }

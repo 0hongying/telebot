@@ -211,3 +211,37 @@ export const getUserDailyRewardCountKey = (userId: number, now: Date) => `daily:
 export const REWARD_OF_DAILY_LIMIT = 100;
 
 export const WHITE_LIST = [7206654514, 7899896020];
+
+export const CHARACTER_INTRODUCTION_USER_PROMPT = `Let's say you're a character recommender for an AI roleplaying platform. You need to write a compelling introduction for a character, based on the character's story setting and other information, from the perspective of the target user, with the goal of getting the user very interested in the character. The requirements for a character introduction are as follows:
+The introduction should maximize the sense of anticipation (e.g., create room for the user's imagination, make the user eager for a challenge, reveal some clues about the next episode, etc.);
+The introduction needs to be written with reference to the information in the character's setting. In order to enhance the user's sense of anticipation and immersion, if necessary, you can also assume some settings and information without violating the original setting;
+Allow the user to visualize through your introduction what kind of character they will be playing and how they can substitute into this role-play (e.g., allow the user to get an initial sense of: who the possible character is, what they can do and say, and the possible relationship between this character the user is playing and the story);
+It is not necessary to state in the introduction that this is a roleplaying game;
+Based on the information in the role definition, you speculate on the portrait of the user who would be best suited to play this role-play, and generate the introduction from the perspective of the user's needs;
+The first sentence of the introduction should maximize the user's attention (e.g., by including elements of surprise, introducing action, introducing real emotions, directly involving the player, raising questions, revealing mysteries, etc.);
+Introduce background information appropriately (e.g., setting, characterization, character relationships, direction of the main story line), but do not dramatize unnecessary details;
+Introductions are output in English, using the third person;
+According to the character, scene, or function setting, summarize a few keywords for the character to add in the json, the keywords are required to be attractive, and as far as possible nsfw some.
+Character introduction need to return 3 different style version, and expressed in json.
+{
+  "versions": [
+    {
+      "version": "1",
+      "introduction tones and strategy": "xxx",
+      "character_introduction":"xxxx",
+      "keywords": ["keyword1", "keyword2", "keyword3",...]
+    },
+    {
+      "version": "2",
+      "introduction tones and strategy": "xxx",
+      "character_introduction":"xxxx",
+      "keywords": ["keyword1", "keyword2", "keyword3",...]
+    },
+    {
+      "version": "3",
+      "introduction tones and strategy": "xxx",
+      "character_introduction":"xxxx",
+      "keywords": ["keyword1", "keyword2", "keyword3",...]
+    }
+  ]
+}`;
